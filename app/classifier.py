@@ -138,7 +138,7 @@ use_cuda = torch.cuda.is_available()
 if use_cuda:
     model_transfer = model_transfer.cuda()
 
-model_transfer.load_state_dict(torch.load('./saved_model.pt'))
+model_transfer.load_state_dict(torch.load('./saved_model.pt', map_location=torch.device('cpu')))
 
 
 def detect_image(img_path):
