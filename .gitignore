@@ -2,3 +2,7 @@
 *.pt
 
 .ipynb_checkpoints/*
+
+app/.idea/
+
+app/__pycache__/
