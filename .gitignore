@@ -1,8 +1,9 @@
 
-*.pt
-
 .ipynb_checkpoints/*
 
 app/.idea/
 
 app/__pycache__/
+
+saved_model.pt
+!app/saved_model.pt
