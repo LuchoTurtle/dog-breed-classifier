@@ -21,7 +21,7 @@ You can check the notebook [here](https://colab.research.google.com/drive/1QuCZ5
 uploaded_file = st.file_uploader("Choose an image...", type=("jpg", "png", "jpeg"))
 
 if uploaded_file is not None:
-    image = Image.open(uploaded_file)
+    image = Image.open(uploaded_file).convert('RGB')
     st.image(image, caption='Your uploaded image', use_column_width=True)
     st.write("")
 
