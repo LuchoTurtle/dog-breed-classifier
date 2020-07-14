@@ -26,7 +26,7 @@ if use_cuda:
 
 
 def VGG16_predict(img_path):
-    image = Image.open(img_path)
+    image = Image.open(img_path).convert('RGB')
 
     # These are the transforms according to the documentation in pytorch.models (
     # https://pytorch.org/hub/pytorch_vision_vgg/)
@@ -96,7 +96,7 @@ class_names = ['Affenpinscher', 'Afghan hound', 'Airedale terrier', 'Akita', 'Al
 
 
 def predict_breed(model, img_path):
-    image = Image.open(img_path)
+    image = Image.open(img_path).convert('RGB')
 
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
