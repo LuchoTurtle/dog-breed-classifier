@@ -12,6 +12,9 @@ It is worth noting that the classifier only expects an image being only a dog, a
 
 We are using a pre-trained model because training a model long enough to be accurate would take too long.
 
+
+You can check the notebook [here](https://colab.research.google.com/drive/1QuCZ5JTLu0N2Og8qWrxGgwn8CyzKU0oE), which explains the process of this small project.
+
 """)
 
 
