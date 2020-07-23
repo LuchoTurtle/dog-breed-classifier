@@ -3,7 +3,6 @@ from PIL import Image
 from classifier import detect_image
 
 st.title("Dog Breed Classifier")
-st.subheader("small proof of concept for Unilabs")
 st.markdown(
 """
 This little app is to provide a simple overview of the process of creating a simple, proof of concept classifier for dogs, specifying different breeds.

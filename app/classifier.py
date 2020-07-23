@@ -142,15 +142,15 @@ model_transfer.load_state_dict(torch.load('./saved_model.pt', map_location=torch
 
 
 def detect_image(img_path):
-    if face_detector(img_path) is True:
-        return "You are a human so I won't tell you how you'd look like if you were a dog :)"
+    if dog_detector(img_path) is True:
+        pred = predict_breed(model_transfer, img_path)
+        return "That's a dog! I guess that you are a... {0}".format(pred)
 
     elif cat_detector(img_path) is True:
         return "You look like a cat or a feline!"
 
-    elif dog_detector(img_path) is True:
-        pred = predict_breed(model_transfer, img_path)
-        return "That's a dog! I guess that you are a... {0}".format(pred)
+    elif face_detector(img_path) is True:
+        return "You are a human so I won't tell you how you'd look like if you were a dog :)"
 
     else:
         return "I don't know what this is, to be honest."
