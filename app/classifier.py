@@ -1,10 +1,16 @@
 import cv2
+import numpy as np
 import torch
+import torch.nn as nn
+import torch.utils.data
 import torchvision.models as models
 from PIL import Image
-import torchvision.transforms as transforms
-import torch.nn as nn
-import numpy as np
+from torchvision import transforms
+
+
+###################
+# DETECT THE FACE #
+###################
 
 def face_detector(path):
     cascade = cv2.CascadeClassifier('./haarcascade_frontalface_alt2.xml')
@@ -18,20 +24,76 @@ def face_detector(path):
 
     return len(detected_faces) > 0
 
+##################################
+# DETECT IF IT IS A CAT OR A DOG #
+##################################
 
-VGG16 = models.vgg16(pretrained=True)
-use_cuda = torch.cuda.is_available()
-if use_cuda:
-    VGG16 = VGG16.cuda()
+model_resnet18 = torch.hub.load('pytorch/vision', 'resnet18', pretrained=True)
+model_resnet34 = torch.hub.load('pytorch/vision', 'resnet34', pretrained=True)
+
+for name, param in model_resnet18.named_parameters():
+    if ("bn" not in name):
+        param.requires_grad = False
+
+for name, param in model_resnet34.named_parameters():
+    if ("bn" not in name):
+        param.requires_grad = False
 
 
-def VGG16_predict(img_path):
-    image = Image.open(img_path).convert('RGB')
+num_classes = 2
 
-    # These are the transforms according to the documentation in pytorch.models (
-    # https://pytorch.org/hub/pytorch_vision_vgg/)
-    transform = transforms.Compose([transforms.Resize(256),
-                                    transforms.CenterCrop(224),
+model_resnet18.fc = nn.Sequential(nn.Linear(model_resnet18.fc.in_features,512),
+                                  nn.ReLU(),
+                                  nn.Dropout(),
+                                  nn.Linear(512, num_classes))
+
+model_resnet34.fc = nn.Sequential(nn.Linear(model_resnet34.fc.in_features,512),
+                                  nn.ReLU(),
+                                  nn.Dropout(),
+                                  nn.Linear(512, num_classes))
+
+batch_size=32
+img_dimensions = 224
+
+# Normalize to the ImageNet mean and standard deviation
+# Could calculate it for the cats/dogs data set, but the ImageNet
+# values give acceptable results here.
+img_transforms = transforms.Compose([
+    transforms.Resize((img_dimensions, img_dimensions)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225] )
+    ])
+
+img_test_transforms = transforms.Compose([
+    transforms.Resize((img_dimensions,img_dimensions)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225] )
+    ])
+
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+else:
+    device = torch.device("cpu")
+
+resnet18 = torch.hub.load('pytorch/vision', 'resnet18')
+resnet18.fc = nn.Sequential(nn.Linear(resnet18.fc.in_features,512),nn.ReLU(), nn.Dropout(), nn.Linear(512, num_classes))
+resnet18.load_state_dict(torch.load('./model_resnet18.pth'))
+resnet18.eval()
+
+resnet34 = torch.hub.load('pytorch/vision', 'resnet34')
+resnet34.fc = nn.Sequential(nn.Linear(resnet34.fc.in_features,512),nn.ReLU(), nn.Dropout(), nn.Linear(512, num_classes))
+resnet34.load_state_dict(torch.load('./model_resnet34.pth'))
+resnet34.eval()
+
+models_ensemble = [resnet18.to(device), resnet34.to(device)]
+
+
+def dog_or_cat_predict(img_path):
+    image = Image.open(img_path)
+
+    # These are the transforms according to the documentation in pytorch.models (https://pytorch.org/hub/pytorch_vision_vgg/)
+    transform = transforms.Compose([transforms.Resize(img_dimensions),
+                                    transforms.CenterCrop(img_dimensions),
                                     transforms.ToTensor(),
                                     transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                          std=[0.229, 0.224, 0.225])])
@@ -40,31 +102,14 @@ def VGG16_predict(img_path):
     image_tensor = transform(image).unsqueeze(0)
 
     # move the input and model to GPU
-    if use_cuda:
-        image_tensor = image_tensor.to('cuda')
+    image_tensor = image_tensor.to(device)
 
-    # We turn eval() mode on before prediction and resume training afterwards
-    VGG16.eval()
-
-    # Get prediction
     with torch.no_grad():
-        output = VGG16(image_tensor)
-        prediction = torch.argmax(output).item()  # Returns the index of the maximum value
+        predictions = [i(image_tensor).data for i in models_ensemble]
+        avg_predictions = torch.mean(torch.stack(predictions), dim=0)
+        _, predicted = torch.max(avg_predictions, 1)
 
-    VGG16.train()
-
-    return prediction
-
-
-def dog_detector(img_path):
-    prediction_index = VGG16_predict(img_path)
-    return True if (269 > prediction_index > 150) else False
-
-
-def cat_detector(img_path):
-    prediction_index = VGG16_predict(img_path)
-    return True if (288 > prediction_index > 280) else False
-
+        return predicted.item() == True
 
 class_names = ['Affenpinscher', 'Afghan hound', 'Airedale terrier', 'Akita', 'Alaskan malamute', 'American eskimo dog',
                'American foxhound', 'American staffordshire terrier', 'American water spaniel',
@@ -93,6 +138,11 @@ class_names = ['Affenpinscher', 'Afghan hound', 'Airedale terrier', 'Akita', 'Al
                'Pharaoh hound', 'Plott', 'Pointer', 'Pomeranian', 'Poodle', 'Portuguese water dog', 'Saint bernard',
                'Silky terrier', 'Smooth fox terrier', 'Tibetan mastiff', 'Welsh springer spaniel',
                'Wirehaired pointing griffon', 'Xoloitzcuintli', 'Yorkshire terrier']
+
+
+###############################
+# DETECT BREED IF IT IS A DOG #
+###############################
 
 
 def predict_breed(model, img_path):
@@ -140,17 +190,76 @@ if use_cuda:
 
 model_transfer.load_state_dict(torch.load('./saved_model.pt', map_location=torch.device('cpu')))
 
+########################################
+# ADDITIONAL SUPPORT FOR DOGS AND CATS #
+########################################
+
+VGG16 = models.vgg16(pretrained=True)
+use_cuda = torch.cuda.is_available()
+if use_cuda:
+    VGG16 = VGG16.cuda()
+
+
+def VGG16_predict(img_path):
+    image = Image.open(img_path).convert('RGB')
+
+    # These are the transforms according to the documentation in pytorch.models (
+    # https://pytorch.org/hub/pytorch_vision_vgg/)
+    transform = transforms.Compose([transforms.Resize(256),
+                                    transforms.CenterCrop(224),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                         std=[0.229, 0.224, 0.225])])
+
+    # Apply transforms and add new dimension (to input in the network)
+    image_tensor = transform(image).unsqueeze(0)
+
+    # move the input and model to GPU
+    if use_cuda:
+        image_tensor = image_tensor.to('cuda')
+
+    # We turn eval() mode on before prediction and resume training afterwards
+    VGG16.eval()
+
+    # Get prediction
+    with torch.no_grad():
+        output = VGG16(image_tensor)
+        prediction = torch.argmax(output).item()  # Returns the index of the maximum value
+
+    VGG16.train()
+
+    return prediction
+
+
+def dog_detector(img_path):
+    prediction_index = VGG16_predict(img_path)
+    return True if (269 > prediction_index > 150) else False
+
+
+def cat_detector(img_path):
+    prediction_index = VGG16_predict(img_path)
+    return True if (288 > prediction_index > 280) else False
+
+##################
+# FINAL FUNCTION #
+##################
 
 def detect_image(img_path):
-    if dog_detector(img_path) is True:
-        pred = predict_breed(model_transfer, img_path)
-        return "That's a dog! I guess that you are a... {0}".format(pred)
+    ret_str = ""
+    if face_detector(img_path) is True:
+        ret_str += "There is a human in this photo.\n"
+
+    if dog_or_cat_predict(img_path) is True:
+        ret_str += "There is a high probability this has a dog...\n"
+        if dog_detector(img_path) is True:
+            pred = predict_breed(model_transfer, img_path)
+            ret_str += "its breed being {0}.\n".format(pred)
 
     elif cat_detector(img_path) is True:
-        return "You look like a cat or a feline!"
-
-    elif face_detector(img_path) is True:
-        return "You are a human so I won't tell you how you'd look like if you were a dog :)"
+        ret_str += "I'm quite certain the picture has a cat!\n"
 
     else:
-        return "I don't know what this is, to be honest."
+        ret_str += "There is not a human nor there is a dog, so perhaps a cat...?\n"
+
+    return ret_str
+
