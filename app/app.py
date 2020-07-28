@@ -7,10 +7,11 @@ st.markdown(
 """
 This little app is to provide a simple overview of the process of creating a simple, proof of concept classifier for dogs, specifying different breeds.
 
-It is worth noting that the classifier only expects an image being only a dog, a cat or a human (it has detection for human faces). Anything else will be regarded as foreign.
+It is worth noting that the classifier only expects an image being only a dog, a cat or a human (it has detection for human faces). 
 
 We are using a pre-trained model because training a model long enough to be accurate would take too long.
 
+The ensemble of models that check if the image is a cat or a dog (the expected output, nothing else) has around 99% accuracy (through the cross-validation analysis ensued).
 
 You can check the notebook [here](https://colab.research.google.com/drive/1QuCZ5JTLu0N2Og8qWrxGgwn8CyzKU0oE), which explains the process of this small project.
 

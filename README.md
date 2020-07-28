@@ -6,7 +6,9 @@ In this notebook, I'm attempting to predict a dog breed based on an image by cre
 This project is particularly interesting because it encompasses much of the pipeline of training a model, from data augmentation to data visualization and hyper parameter tweaking.
 
 ## Deployment
-Within this repo, there is an `app` folder that has the same features as found in the notebook. It uses Streamlit to create a simple frontend app that the users can use the classifier. It's better than just having a notebook, right? :sweat_smile:
+Within this repo, there is an `app` folder that has the same features as found in the notebook, albeit with some differentes. You should check the [HTML file](./app/dog_app2.html) to check the progress and added features. The `classifier.py` file has the prediction method reordered, knowing if there is a dog or cat through an ensemble of two ResNet models, averaging the prediction of each model to reach to a solid conclusion on if the dog pertains to a dog or a cat.
+
+ It uses Streamlit to create a simple frontend app that the users can use the classifier. It's better than just having a notebook, right? :sweat_smile:
 
 The code that is in the `app` folder is the same as found in the notebook, with an additional feature of detecting if it is a cat.
 
