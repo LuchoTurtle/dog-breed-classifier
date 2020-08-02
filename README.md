@@ -18,4 +18,4 @@ The `app` folder is has all the files needed to easily deploy to Heroku. If you 
 
 
 ## License
-[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](http://unlicense.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](http://unlicense.org/)
